@@ -554,3 +554,8 @@ void gr_fb_blank(bool blank)
         allocate_overlay(gr_fb_fd, gr_framebuffer);
     }
 }
+
+void gr_get_memory_surface(gr_surface surface)
+{
+    get_memory_surface( (GGLSurface*) surface);
+}
