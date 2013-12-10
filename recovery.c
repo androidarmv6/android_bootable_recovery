@@ -1045,7 +1045,7 @@ main(int argc, char **argv) {
 #endif
         break;
         case 'h':
-            ui_set_background(BACKGROUND_ICON_CID);
+            //ui_set_background(BACKGROUND_ICON_CID);
             ui_show_text(0);
             headless = 1;
             break;
