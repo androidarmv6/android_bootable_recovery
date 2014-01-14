@@ -718,7 +718,7 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
         return 0;
     }
 
-    static char tmp[PATH_MAX];
+    char tmp[PATH_MAX];
     if (strcmp(path, "/data") == 0) {
         sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
         __system(tmp);
@@ -1439,7 +1439,8 @@ int show_advanced_menu() {
             case 3: {
                 if (0 != ensure_path_mounted("/data"))
                     break;
-                ensure_path_mounted("/sd-ext");
+                if (volume_for_path("/sd-ext") != NULL)
+                    ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection("Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
                     __system("rm -r /data/dalvik-cache");
