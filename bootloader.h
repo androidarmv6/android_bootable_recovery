@@ -50,6 +50,7 @@ struct bootloader_message {
  */
 int get_bootloader_message(struct bootloader_message *out);
 int set_bootloader_message(const struct bootloader_message *in);
+void wait_for_device(const char* fn);
 
 #ifdef __cplusplus
 }
