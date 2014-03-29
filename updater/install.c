@@ -1267,11 +1267,10 @@ Value* ApplyPatchCheckFn(const char* name, State* state,
 
     int result = applypatch_check(filename, patchcount, sha1s);
 
-    if (result == -ENOENT && totalbaks) {
-        /* File is gone, and we're dealing with a system containing
-           modified files supported by the CM backup tool. Push it
-           to the "skippable" list so we don't try to apply it when
-           the time comes, and return OK to any enclosing asserts */
+    if (result == -ENOENT) {
+        /* File is gone. Push it to the "skippable" list so we don't
+           try to apply it when the time comes, and return OK to any
+           enclosing asserts */
         sprintf (bakfiles[totalbaks++], "%s", filename);
         result = 0;
     }
