@@ -27,6 +27,10 @@ LOCAL_SRC_FILES := \
     verifier.cpp \
     adb_install.cpp
 
+ifeq ($(TARGET_USES_QCOM_BSP), true)
+LOCAL_SRC_FILES += bootselect.cpp
+endif
+
 LOCAL_MODULE := recovery
 
 LOCAL_FORCE_STATIC_EXECUTABLE := true
@@ -73,6 +77,15 @@ else
 endif
 
 LOCAL_C_INCLUDES += system/extras/ext4_utils
+
+ifeq ($(call is-vendor-board-platform,QCOM),true)
+  LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+  LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+endif
+
+ifeq ($(TARGET_USES_QCOM_BSP), true)
+	LOCAL_CFLAGS += -DMSM_FIRST_FORMAT
+endif
 
 include $(BUILD_EXECUTABLE)
 

@@ -31,6 +31,9 @@
 #include <unistd.h>
 
 #include "bootloader.h"
+#ifdef MSM_FIRST_FORMAT
+#include "bootselect.h"
+#endif
 #include "common.h"
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
@@ -58,6 +61,7 @@ static const struct option OPTIONS[] = {
   { "wipe_cache", no_argument, NULL, 'c' },
   { "show_text", no_argument, NULL, 't' },
   { "just_exit", no_argument, NULL, 'x' },
+  { "first_format", no_argument, NULL, 'f' },
   { "locale", required_argument, NULL, 'l' },
   { NULL, 0, NULL, 0 },
 };
@@ -173,6 +177,10 @@ check_and_fclose(FILE *fp, const char *name) {
 static void
 get_args(int *argc, char ***argv) {
     struct bootloader_message boot;
+#ifdef MSM_FIRST_FORMAT
+    struct boot_selection_info bootselect_info;
+    memset(&bootselect_info, 0, sizeof(bootselect_info));
+#endif
     memset(&boot, 0, sizeof(boot));
     get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
 
@@ -200,7 +208,27 @@ get_args(int *argc, char ***argv) {
             LOGE("Bad boot message\n\"%.20s\"\n", boot.recovery);
         }
     }
-
+#ifdef MSM_FIRST_FORMAT
+    // --- if that doesn't work, try the /bootselect partition
+    // Format /data and /cache partition if format bit is set
+    if (*argc <= 1) {
+        if (!get_bootselect_info(&bootselect_info)) {
+            unsigned int state_info = bootselect_info.state_info;
+            if ((bootselect_info.signature == BOOTSELECT_SIGNATURE) &&
+                    (bootselect_info.version == BOOTSELECT_VERSION)) {
+                if (((bootselect_info.state_info & BOOTSELECT_FORMAT) &&
+                            !(bootselect_info.state_info & BOOTSELECT_FACTORY))) {
+                    *argv = (char **) malloc(sizeof(char *) * MAX_ARGS);
+                    *argc = 0;
+                    (*argv)[(*argc)++] = strdup("recovery");
+                    (*argv)[(*argc)++] = strdup("--first_format");
+                }
+            } else
+                LOGI("Signature:0x%08x or version:0x%08x is mismatched of bootselect partition\n",
+                        bootselect_info.signature, bootselect_info.version);
+        }
+    }
+#endif
     // --- if that doesn't work, try the command file
     if (*argc <= 1) {
         FILE *fp = fopen_path(COMMAND_FILE, "r");
@@ -984,6 +1012,7 @@ main(int argc, char **argv) {
     const char *send_intent = NULL;
     const char *update_package = NULL;
     int wipe_data = 0, wipe_cache = 0, show_text = 0;
+    int clr_format_bit = 0;
     bool just_exit = false;
 
     int arg;
@@ -992,6 +1021,7 @@ main(int argc, char **argv) {
         case 'p': previous_runs = atoi(optarg); break;
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
+        case 'f': wipe_data = wipe_cache = clr_format_bit = 1; break;
         case 'w': wipe_data = wipe_cache = 1; break;
         case 'c': wipe_cache = 1; break;
         case 't': show_text = 1; break;
@@ -1081,6 +1111,12 @@ main(int argc, char **argv) {
         if (erase_volume("/data")) status = INSTALL_ERROR;
         if (wipe_cache && erase_volume("/cache")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) ui->Print("Data wipe failed.\n");
+#ifdef MSM_FIRST_FORMAT
+        if (status == INSTALL_SUCCESS && clr_format_bit) {
+            if(clear_format_bit())
+                ui->Print("clear first format bit failed\n");
+        }
+#endif
     } else if (wipe_cache) {
         if (wipe_cache && erase_volume("/cache")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) ui->Print("Cache wipe failed.\n");

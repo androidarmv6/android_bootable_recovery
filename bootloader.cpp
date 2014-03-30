@@ -143,7 +143,7 @@ static int set_bootloader_message_mtd(const struct bootloader_message *in,
 // for misc partitions on block devices
 // ------------------------------------
 
-static void wait_for_device(const char* fn) {
+void wait_for_device(const char* fn) {
     int tries = 0;
     int ret;
     struct stat buf;
