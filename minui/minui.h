@@ -75,6 +75,7 @@ void ev_dispatch(void);
 int res_create_surface(const char* name, gr_surface* pSurface);
 int res_create_localized_surface(const char* name, gr_surface* pSurface);
 void res_free_surface(gr_surface surface);
+void *get_context(void);
 
 #ifdef __cplusplus
 }
