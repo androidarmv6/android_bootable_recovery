@@ -615,6 +615,7 @@ void ui_set_background(int icon)
 
 void ui_show_indeterminate_progress()
 {
+    if (!ui_has_initialized) return;
     pthread_mutex_lock(&gUpdateMutex);
     if (gProgressBarType != PROGRESSBAR_TYPE_INDETERMINATE) {
         gProgressBarType = PROGRESSBAR_TYPE_INDETERMINATE;
@@ -625,6 +626,7 @@ void ui_show_indeterminate_progress()
 
 void ui_show_progress(float portion, int seconds)
 {
+    if (!ui_has_initialized) return;
     pthread_mutex_lock(&gUpdateMutex);
     gProgressBarType = PROGRESSBAR_TYPE_NORMAL;
     gProgressScopeStart += gProgressScopeSize;
@@ -638,6 +640,7 @@ void ui_show_progress(float portion, int seconds)
 
 void ui_set_progress(float fraction)
 {
+    if (!ui_has_initialized) return;
     pthread_mutex_lock(&gUpdateMutex);
     if (fraction < 0.0) fraction = 0.0;
     if (fraction > 1.0) fraction = 1.0;
@@ -655,6 +658,7 @@ void ui_set_progress(float fraction)
 
 void ui_reset_progress()
 {
+    if (!ui_has_initialized) return;
     pthread_mutex_lock(&gUpdateMutex);
     gProgressBarType = PROGRESSBAR_TYPE_NONE;
     gProgressScopeStart = gProgressScopeSize = 0;
@@ -1077,6 +1081,7 @@ void ui_delete_line() {
 }
 
 void ui_increment_frame() {
+    if (!ui_has_initialized) return;
     gInstallingFrame =
         (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
