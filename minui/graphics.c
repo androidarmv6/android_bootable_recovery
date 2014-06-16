@@ -560,3 +560,8 @@ void gr_get_memory_surface(gr_surface surface)
 {
     get_memory_surface( (GGLSurface*) surface);
 }
+
+void *get_context(void)
+{
+    return gr_context;
+}
