@@ -301,7 +301,7 @@ ShowCardInfo() {
 		echo
 		parted "$SDPATH" print
 		echo
-		echo "script log is located @ /data/sdparted.log"
+		echo "script log is located @ $LOGFILE"
 		exit 0
 	else
 		echo
