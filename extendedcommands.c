@@ -1429,7 +1429,8 @@ static void partition_sdcard(const char* volume) {
         return;
     }
 
-    static char* ext_sizes[] = { "128M",
+    static char* ext_sizes[] = { "0M",
+				 "128M",
                                  "256M",
                                  "512M",
                                  "1024M",
@@ -1456,7 +1457,7 @@ static void partition_sdcard(const char* volume) {
     if (ext_size < 0)
         return;
 
-    int swap_size = get_menu_selection(swap_headers, swap_sizes, 0, 0);
+    int swap_size = (ext_size == 0) ? 0 : get_menu_selection(swap_headers, swap_sizes, 0, 0);
     if (swap_size < 0)
         return;
 
