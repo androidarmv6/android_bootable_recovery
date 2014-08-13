@@ -462,13 +462,11 @@ int WriteToPartition(unsigned char* data, size_t len,
             }
             int attempt;
 
-            for (attempt = 0; attempt < 10; ++attempt) {
-                size_t next_sync = start + (1<<20);
-                printf("raw write %s attempt %d start at %d\n", partition, attempt+1, start);
+            for (attempt = 0; attempt < 2; ++attempt) {
                 lseek(fd, start, SEEK_SET);
                 while (start < len) {
                     size_t to_write = len - start;
-                    if (to_write > 4096) to_write = 4096;
+                    if (to_write > 1<<20) to_write = 1<<20;
 
                     ssize_t written = write(fd, data+start, to_write);
                     if (written < 0) {
@@ -481,10 +479,6 @@ int WriteToPartition(unsigned char* data, size_t len,
                         }
                     }
                     start += written;
-                    if (start >= next_sync) {
-                        fsync(fd);
-                        next_sync = start + (1<<20);
-                    }
                 }
                 fsync(fd);
 
@@ -537,8 +531,6 @@ int WriteToPartition(unsigned char* data, size_t len,
                     success = true;
                     break;
                 }
-
-                sleep(2);
             }
 
             if (!success) {
@@ -550,11 +542,7 @@ int WriteToPartition(unsigned char* data, size_t len,
                 printf("error closing %s (%s)\n", partition, strerror(errno));
                 return -1;
             }
-            // hack: sync and sleep after closing in hopes of getting
-            // the data actually onto flash.
-            printf("sleeping after close\n");
             sync();
-            sleep(5);
             break;
         }
     }
