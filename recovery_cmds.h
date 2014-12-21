@@ -21,6 +21,9 @@
 #include <string.h>
 
 int minizip_main(int argc, char **argv);
+int flash_image_main(int argc, char **argv);
+int dump_image_main(int argc, char **argv);
+int erase_image_main(int argc, char **argv);
 int make_ext4fs_main(int argc, char **argv);
 int reboot_main(int argc, char **argv);
 int poweroff_main(int argc, char **argv);
@@ -48,6 +51,9 @@ struct recovery_cmd {
 
 static const struct recovery_cmd recovery_cmds[] = {
     { "minizip",        minizip_main },
+    { "flash_image",    flash_image_main },
+    { "dump_image",     dump_image_main },
+    { "erase_image",    erase_image_main },
     { "make_ext4fs",    make_ext4fs_main },
     { "reboot",         reboot_main },
     { "poweroff",       reboot_main },
