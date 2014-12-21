@@ -80,6 +80,7 @@ LOCAL_STATIC_LIBRARIES := \
     libminzip \
     libz \
     libmtdutils \
+    libbmlutils \
     libmincrypt \
     libminadbd \
     libbusybox \
@@ -129,7 +130,11 @@ endif
 LOCAL_MODULE_TAGS := eng
 
 #ifeq ($(TARGET_RECOVERY_UI_LIB),)
-  LOCAL_SRC_FILES += default_device.cpp
+  ifeq ($(BOARD_CUSTOM_RECOVERY_KEYMAPPING),)
+    LOCAL_SRC_FILES += default_device.cpp
+  else
+    LOCAL_SRC_FILES += $(BOARD_CUSTOM_RECOVERY_KEYMAPPING)
+  endif
 #else
 #  LOCAL_STATIC_LIBRARIES += $(TARGET_RECOVERY_UI_LIB)
 #endif
@@ -210,6 +215,7 @@ LOCAL_STATIC_LIBRARIES += \
     libvoldclient \
     libz \
     libmtdutils \
+    libbmlutils \
     libminadbd \
     libminui \
     libfs_mgr \
@@ -300,6 +306,7 @@ include $(LOCAL_PATH)/minui/Android.mk \
     $(LOCAL_PATH)/minzip/Android.mk \
     $(LOCAL_PATH)/minadbd/Android.mk \
     $(LOCAL_PATH)/mtdutils/Android.mk \
+    $(LOCAL_PATH)/bmlutils/Android.mk \
     $(LOCAL_PATH)/tests/Android.mk \
     $(LOCAL_PATH)/tools/Android.mk \
     $(LOCAL_PATH)/edify/Android.mk \
