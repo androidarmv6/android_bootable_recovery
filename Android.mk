@@ -79,7 +79,14 @@ LOCAL_STATIC_LIBRARIES := \
     libsdcard \
     libminzip \
     libz \
+    libdump_image \
+    liberase_image \
+    libflash_image \
+    libcrecovery \
+    libflashutils \
     libmtdutils \
+    libmmcutils \
+    libbmlutils \
     libmincrypt \
     libminadbd \
     libbusybox \
@@ -140,7 +147,7 @@ LOCAL_C_INCLUDES += system/extras/ext4_utils
 LOCAL_C_INCLUDES += external/openssl/include
 
 # Symlinks
-RECOVERY_LINKS := busybox getprop reboot sdcard setup_adbd setprop start stop vdc
+RECOVERY_LINKS := busybox dump_image erase_image flash_image getprop reboot sdcard setup_adbd setprop start stop vdc
 
 RECOVERY_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(RECOVERY_LINKS))
 
@@ -299,7 +306,11 @@ include $(BUILD_EXECUTABLE)
 include $(LOCAL_PATH)/minui/Android.mk \
     $(LOCAL_PATH)/minzip/Android.mk \
     $(LOCAL_PATH)/minadbd/Android.mk \
+    $(LOCAL_PATH)/libcrecovery/Android.mk \
+    $(LOCAL_PATH)/flashutils/Android.mk \
     $(LOCAL_PATH)/mtdutils/Android.mk \
+    $(LOCAL_PATH)/bmlutils/Android.mk \
+    $(LOCAL_PATH)/mmcutils/Android.mk  \
     $(LOCAL_PATH)/tests/Android.mk \
     $(LOCAL_PATH)/tools/Android.mk \
     $(LOCAL_PATH)/edify/Android.mk \
