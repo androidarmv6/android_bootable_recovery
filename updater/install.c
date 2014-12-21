@@ -784,7 +784,7 @@ static int ApplyParsedPerms(
         if (lsetfilecon(filename, parsed.selabel) != 0) {
             uiPrintf(state, "ApplyParsedPerms: lsetfilecon of %s to %s failed: %s\n",
                     filename, parsed.selabel, strerror(errno));
-            bad++;
+            //bad++;
         }
     }
 
