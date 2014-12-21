@@ -79,7 +79,12 @@ LOCAL_STATIC_LIBRARIES := \
     libsdcard \
     libminzip \
     libz \
+    libflashutils \
+    liberase_image \
+    libdump_image \
+    libflash_image \
     libmtdutils \
+    libbmlutils \
     libmincrypt \
     libminadbd \
     libbusybox \
@@ -210,6 +215,7 @@ LOCAL_STATIC_LIBRARIES += \
     libvoldclient \
     libz \
     libmtdutils \
+    libbmlutils \
     libminadbd \
     libminui \
     libfs_mgr \
@@ -299,7 +305,10 @@ include $(BUILD_EXECUTABLE)
 include $(LOCAL_PATH)/minui/Android.mk \
     $(LOCAL_PATH)/minzip/Android.mk \
     $(LOCAL_PATH)/minadbd/Android.mk \
+    $(LOCAL_PATH)/libcrecovery/Android.mk \
+    $(LOCAL_PATH)/flashutils/Android.mk \
     $(LOCAL_PATH)/mtdutils/Android.mk \
+    $(LOCAL_PATH)/bmlutils/Android.mk \
     $(LOCAL_PATH)/tests/Android.mk \
     $(LOCAL_PATH)/tools/Android.mk \
     $(LOCAL_PATH)/edify/Android.mk \

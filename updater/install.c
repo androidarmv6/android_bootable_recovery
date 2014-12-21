@@ -1052,12 +1052,11 @@ Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
         return NULL;
     }
 
-    char* partition = NULL;
     if (partition_value->type != VAL_STRING) {
         ErrorAbort(state, "partition argument to %s must be string", name);
         goto done;
     }
-    partition = partition_value->data;
+    char* partition = partition_value->data;
     if (strlen(partition) == 0) {
         ErrorAbort(state, "partition argument to %s can't be empty", name);
         goto done;
@@ -1067,65 +1066,13 @@ Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
         goto done;
     }
 
-    mtd_scan_partitions();
-    const MtdPartition* mtd = mtd_find_partition_by_name(partition);
-    if (mtd == NULL) {
-        printf("%s: no mtd partition named \"%s\"\n", name, partition);
+    char* filename = contents->data;
+    if (0 == restore_raw_partition(NULL, partition, filename))
+        result = strdup(partition);
+    else {
         result = strdup("");
         goto done;
     }
-
-    MtdWriteContext* ctx = mtd_write_partition(mtd);
-    if (ctx == NULL) {
-        printf("%s: can't write mtd partition \"%s\"\n",
-                name, partition);
-        result = strdup("");
-        goto done;
-    }
-
-    bool success;
-
-    if (contents->type == VAL_STRING) {
-        // we're given a filename as the contents
-        char* filename = contents->data;
-        FILE* f = fopen(filename, "rb");
-        if (f == NULL) {
-            printf("%s: can't open %s: %s\n",
-                    name, filename, strerror(errno));
-            result = strdup("");
-            goto done;
-        }
-
-        success = true;
-        char* buffer = malloc(BUFSIZ);
-        int read;
-        while (success && (read = fread(buffer, 1, BUFSIZ, f)) > 0) {
-            int wrote = mtd_write_data(ctx, buffer, read);
-            success = success && (wrote == read);
-        }
-        free(buffer);
-        fclose(f);
-    } else {
-        // we're given a blob as the contents
-        ssize_t wrote = mtd_write_data(ctx, contents->data, contents->size);
-        success = (wrote == contents->size);
-    }
-    if (!success) {
-        printf("mtd_write_data to %s failed: %s\n",
-                partition, strerror(errno));
-    }
-
-    if (mtd_erase_blocks(ctx, -1) == -1) {
-        printf("%s: error erasing blocks of %s\n", name, partition);
-    }
-    if (mtd_write_close(ctx) != 0) {
-        printf("%s: error closing write of %s\n", name, partition);
-    }
-
-    printf("%s %s partition\n",
-           success ? "wrote" : "failed to write", partition);
-
-    result = success ? partition : strdup("");
 
 done:
     if (result != partition) FreeValue(partition_value);
@@ -1503,145 +1450,6 @@ Value* ReadFileFn(const char* name, State* state, int argc, Expr* argv[]) {
     return v;
 }
 
-// Immediately reboot the device.  Recovery is not finished normally,
-// so if you reboot into recovery it will re-start applying the
-// current package (because nothing has cleared the copy of the
-// arguments stored in the BCB).
-//
-// The first argument is the block device for the misc partition
-// ("/misc" in the fstab).  The second argument is the argument
-// passed to the android reboot property.  It can be "recovery" to
-// boot from the recovery partition, or "" (empty string) to boot
-// from the regular boot partition.
-Value* RebootNowFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 2) {
-        return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
-    }
-
-    char* filename;
-    char* property;
-    if (ReadArgs(state, argv, 2, &filename, &property) < 0) return NULL;
-
-    char buffer[80];
-
-    // zero out the 'command' field of the bootloader message.
-    memset(buffer, 0, sizeof(((struct bootloader_message*)0)->command));
-    FILE* f = fopen(filename, "r+b");
-    fseek(f, offsetof(struct bootloader_message, command), SEEK_SET);
-#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
-    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
-#endif
-    fwrite(buffer, sizeof(((struct bootloader_message*)0)->command), 1, f);
-    fclose(f);
-    free(filename);
-
-    strcpy(buffer, "reboot,");
-    if (property != NULL) {
-        strncat(buffer, property, sizeof(buffer)-10);
-    }
-
-    property_set(ANDROID_RB_PROPERTY, buffer);
-
-    sleep(5);
-    free(property);
-    ErrorAbort(state, "%s() failed to reboot", name);
-    return NULL;
-}
-
-// Store a string value somewhere that future invocations of recovery
-// can access it.  This value is called the "stage" and can be used to
-// drive packages that need to do reboots in the middle of
-// installation and keep track of where they are in the multi-stage
-// install.
-//
-// The first argument is the block device for the misc partition
-// ("/misc" in the fstab), which is where this value is stored.  The
-// second argument is the string to store; it should not exceed 31
-// bytes.
-Value* SetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 2) {
-        return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
-    }
-
-    char* filename;
-    char* stagestr;
-    if (ReadArgs(state, argv, 2, &filename, &stagestr) < 0) return NULL;
-
-    // Store this value in the misc partition, immediately after the
-    // bootloader message that the main recovery uses to save its
-    // arguments in case of the device restarting midway through
-    // package installation.
-    FILE* f = fopen(filename, "r+b");
-    fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
-#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
-    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
-#endif
-    int to_write = strlen(stagestr)+1;
-    int max_size = sizeof(((struct bootloader_message*)0)->stage);
-    if (to_write > max_size) {
-        to_write = max_size;
-        stagestr[max_size-1] = 0;
-    }
-    fwrite(stagestr, to_write, 1, f);
-    fclose(f);
-
-    free(stagestr);
-    return StringValue(filename);
-}
-
-// Return the value most recently saved with SetStageFn.  The argument
-// is the block device for the misc partition.
-Value* GetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 1) {
-        return ErrorAbort(state, "%s() expects 1 arg, got %d", name, argc);
-    }
-
-    char* filename;
-    if (ReadArgs(state, argv, 1, &filename) < 0) return NULL;
-
-    char buffer[sizeof(((struct bootloader_message*)0)->stage)];
-    FILE* f = fopen(filename, "rb");
-    fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
-#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
-    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
-#endif
-    fread(buffer, sizeof(buffer), 1, f);
-    fclose(f);
-    buffer[sizeof(buffer)-1] = '\0';
-
-    return StringValue(strdup(buffer));
-}
-
-Value* WipeBlockDeviceFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 2) {
-        return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
-    }
-
-    char* filename;
-    char* len_str;
-    if (ReadArgs(state, argv, 2, &filename, &len_str) < 0) return NULL;
-
-    size_t len = strtoull(len_str, NULL, 0);
-    int fd = open(filename, O_WRONLY, 0644);
-    int success = wipe_block_device(fd, len);
-
-    free(filename);
-    free(len_str);
-
-    close(fd);
-
-    return StringValue(strdup(success ? "t" : ""));
-}
-
-Value* EnableRebootFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 0) {
-        return ErrorAbort(state, "%s() expects no args, got %d", name, argc);
-    }
-    UpdaterInfo* ui = (UpdaterInfo*)(state->cookie);
-    fprintf(ui->cmd_pipe, "enable_reboot\n");
-    return StringValue(strdup("t"));
-}
-
 void RegisterInstallFunctions() {
     RegisterFunction("mount", MountFn);
     RegisterFunction("is_mounted", IsMountedFn);
@@ -1686,12 +1494,5 @@ void RegisterInstallFunctions() {
     RegisterFunction("ui_print", UIPrintFn);
 
     RegisterFunction("run_program", RunProgramFn);
-
-    RegisterFunction("reboot_now", RebootNowFn);
-    RegisterFunction("get_stage", GetStageFn);
-    RegisterFunction("set_stage", SetStageFn);
-
-    RegisterFunction("enable_reboot", EnableRebootFn);
-
     RegisterFunction("collect_backup_data", CollectBackupDataFn);
 }
