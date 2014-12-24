@@ -51,6 +51,7 @@ extern "C" {
 #include "fuse_sdcard_provider.h"
 #include "recovery_cmds.h"
 }
+#include "flashutils/flashutils.h"
 
 struct selabel_handle *sehandle;
 
