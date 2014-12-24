@@ -26,6 +26,7 @@
 #include <dirent.h>
 
 #include <fs_mgr.h>
+#include "flashutils/flashutils.h"
 #include "mtdutils/mtdutils.h"
 #include "mtdutils/mounts.h"
 #include "roots.h"
